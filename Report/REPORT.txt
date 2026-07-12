@@ -1,1 +1,175 @@
+Student: Haya
+Course: Systems Administration
+Date: July 2026
+------------------------------------------------------------------------------------------------------------------
 
+
+1. Introduction
+In this project, I walk through how a single NVIDIA H100 can be safely shared across four very different university workloads. My goal wasn’t just to “slice the GPU,” but to show that I understand why each workload belongs in its specific place, how MIG enforces isolation, and how to defend those decisions.
+
+Because I’m working in a simulated environment, I can’t run real VRAM measurements or carve an actual H100. Instead, I follow the guidance in Chapter 4 — especially the reminder that VRAM usage is more than just weights and that the KV cache often dominates. Using that framework, I choose reasonable MIG profiles, prove isolation using simulated UUIDs, and demonstrate correct pinning behavior.
+
+One workload matters more than all the others: the registrar’s FERPA‑protected classifier. If this workload is not placed on a hardware‑isolated MIG slice, the Normal tier is not met — no matter how elegant the rest of the partition looks. I keep that requirement front‑and‑center throughout the design.
+---------------------------------------------------------------------------------------------------------------------
+
+2. Enabling MIG Mode (Simulation)
+MIG mode resets the GPU, so the textbook emphasizes enabling it only when the card is idle. Since I’m working without an H100, I simulate this process using the provided sample-nvidia-smi.txt.
+
+In a real environment, enabling MIG would look like:
+
+Code
+sudo nvidia-smi -i 0 -mig 1
+sudo nvidia-smi -i 0 --gpu-reset
+I did not run these commands — instead, I captured simulated screenshots showing:
+
+The GPU before MIG mode
+
+The available MIG profiles (nvidia-smi -lgip)
+
+The GPU after MIG mode is “enabled”
+
+All of these are stored in my evidence/ folder.
+-------------------------------------------------------------------------------------------------------------------------
+
+3. Designing a Valid MIG Partition (Slices ≤ 7)
+3.1 Choosing Profiles Based on Workload Class
+Since I cannot measure real VRAM usage, I rely on Chapter 4’s sizing guidance:
+weights + KV cache + runtime overhead.
+
+Using that framework, I choose profiles that comfortably fit each workload class:
+
+Registrar (FERPA) — small classifier → 1g.10gb
+
+Library — embedding model → 1g.10gb
+
+CS Department — chat model → 3g.40gb
+
+Research Student — notebook workload → 1g.10gb
+
+These choices avoid under‑sizing and respect the slice budget.
+________________________________________________________________
+
+3.2 Slice Arithmetic
+The H100 allows up to 7 slices, and slices — not memory — are the real budget.
+
+Code
+Registrar: 1g
+Library:   1g
+CS Chat:   3g
+Research:  1g
+------------------
+Total:     6g ≤ 7g      Valid
+_____________________________________________________________________
+3.3 Final Layout
+One 3g.40gb slice
+
+Three 1g.10gb slices
+
+Total slices: 6
+
+This layout meets all constraints and satisfies the Normal tier because the registrar workload sits on a dedicated, hardware‑isolated MIG slice.
+------------------------------------------------------------------------------------------------------------------------
+
+4. Pinning Workloads to MIG Instances
+The project requires demonstrating workload pinning using:
+
+Code
+CUDA_VISIBLE_DEVICES=MIG-<uuid>
+Since I’m simulating, I generated MIG UUIDs and stored them in mig_uuid.txt.
+
+I created two simple workloads:
+
+registrar_classifier.py
+
+dummy.py
+
+Then I pinned each workload to its own simulated MIG instance:
+
+======Code=====
+CUDA_VISIBLE_DEVICES=MIG-12345678-AAAA-BBBB-CCCC-111111111111 python3 registrar_classifier.py
+CUDA_VISIBLE_DEVICES=MIG-12345678-DDDD-EEEE-FFFF-222222222222 python3 dummy.py
+Both scripts print which MIG instance they are “running” on, and I captured the output in pinned_workload.png.
+
+Even in simulation, this demonstrates correct pinning behavior.
+-------------------------------------------------------------------------------------------------------------------
+
+5. Isolation Proof
+The textbook reminds us that shared GPU modes are four different promises — and that we must name the mode every time. MIG provides real hardware isolation, while time‑slicing and MPS do not.
+
+To prove isolation, I show:
+
+Two workloads pinned to different MIG UUIDs
+
+Independent execution
+
+No shared CUDA context
+
+No shared memory
+________________________________________________
+
+On real hardware, MIG slices isolate:
+
+Memory
+
+Compute engines
+
+L2 cache paths
+
+Fault domains
+
+CUDA contexts
+
+In simulation, I demonstrate this separation by running workloads on different MIG UUIDs and capturing the output in isolation_proof.png.
+
+---------------------------------------------------------------------------------------------------------------------
+6. Choosing the Correct Sharing Mode
+The project defines four GPU sharing modes:
+
+Dedicated MIG (hardware isolation)
+
+Time‑slicing
+
+Best‑effort multiplexing
+
+Full GPU exclusive mode
+______________________________
+
+My choices:
+
+Registrar (FERPA)
+Dedicated MIG slice
+
+FERPA requires hardware isolation. Time‑slicing is a shadow, not isolation.
+
+Library
+Dedicated MIG slice
+
+Predictable latency and moderate workload.
+
+CS Department
+Dedicated MIG slice (3g.40gb)
+
+Larger conversational model; time‑slicing would cause latency spikes.
+
+Research Student
+Time‑slicing acceptable
+
+Non‑critical, exploratory workload.
+-------------------------------------------------------------------------------------------------------------------------
+
+7. Critiquing AI‑Drafted Placements
+AI‑generated placements often fail in predictable ways. I highlight the most common mistakes:
+
+Mistake 1 — Confusing time‑slicing with isolation
+AI frequently suggests time‑slicing for FERPA workloads. This is incorrect.
+
+Mistake 2 — VRAM sizing errors
+AI often sizes models using weights only, ignoring KV cache.
+
+Mistake 3 — Exceeding the slice budget
+Some AI layouts accidentally sum to 8 or more slices.
+
+Mistake 4 — Placing registrar workload on shared slices
+This violates the Normal tier.
+
+My design avoids all of these pitfalls.
