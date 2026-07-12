@@ -1,0 +1,26 @@
+# time-slicing-config.yaml
+# NVIDIA k8s-device-plugin time-slicing config. System Administration and Maintenance, Chapter 6.
+#
+# This advertises ONE physical GPU as FOUR schedulable "replicas" so up to four
+# pods can land on it. CRITICAL: this is OVERSUBSCRIPTION, not partitioning.
+# The four pods SHARE all the VRAM and have NO memory or fault isolation — a pod
+# that OOMs the card takes the others down with it. Use only for bursty dev work.
+#
+# Apply as a ConfigMap, then point the device plugin at it:
+#   kubectl create configmap time-slicing -n gpu-operator --from-file=time-slicing-config.yaml
+# In the device plugin you would NOT also enable MPS here — in the NVIDIA device
+# plugin, time-slicing and MPS are MUTUALLY EXCLUSIVE.
+version: v1
+sharing:
+  timeSlicing:
+    # failRequestsGreaterThanOne: pods asking for >1 GPU replica are rejected, so
+    # nobody can accidentally hoard slices and starve the node.
+    failRequestsGreaterThanOne: true
+    resources:
+      - name: nvidia.com/gpu
+        replicas: 4   # one physical GPU -> 4 time-sliced replicas (shared VRAM!)
+---
+# For TRUE isolation you would instead enable MIG and let the plugin advertise
+# named MIG profiles as distinct resources, e.g. nvidia.com/mig-1g.10gb. That is a
+# different config (mig.strategy=mixed) and a different promise: walled-off slices,
+# not shared oversubscription. Know which one you are shipping.

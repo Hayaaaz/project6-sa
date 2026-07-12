@@ -1,0 +1,39 @@
+# sample-nvidia-smi.txt — captured output for offline reading (System Administration and Maintenance, Ch 6).
+# An H100 80GB partitioned into a 3g.40gb + four 1g.10gb mix (5 instances, 7 slices used).
+# Use this to practice reading a MIG layout when you do not have a GPU in front of you.
+
+$ nvidia-smi
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 575.xx              Driver Version: 575.xx        CUDA Version: 12.x          |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf  Pwr:Usage/Cap |        Memory-Usage | GPU-Util  Compute M. |
+|                                 |                     |       MIG M.         |
+|=========================================+========================+======================|
+|   0  NVIDIA H100 80GB HBM3   On  | 00000000:17:00.0 Off |                   On  |
+| N/A   38C    P0   71W / 700W |  19000MiB / 81559MiB |     N/A      Default  |
+|                                 |                     |             Enabled  |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| MIG devices:                                                                            |
++------------------+----------------------+-----------+-----------------------------------+
+| GPU  GI  CI  MIG |         Memory-Usage |        Vol|        Shared                     |
+|      ID  ID  Dev |           BAR1-Usage | SM     Unc| CE ENC DEC OFA JPG                |
+|==================+======================+===========+===================================|
+|  0    1   0   0  |   9000MiB / 40192MiB | 60      0 |  4   0    4    1    1             |
++------------------+----------------------+-----------+-----------------------------------+
+|  0   13   0   1  |   2400MiB / 9984MiB  | 14      0 |  1   0    1    0    0             |
++------------------+----------------------+-----------+-----------------------------------+
+|  0   14   0   2  |   2400MiB / 9984MiB  | 14      0 |  1   0    1    0    0             |
++------------------+----------------------+-----------+-----------------------------------+
+|  0   15   0   3  |    600MiB / 9984MiB  | 14      0 |  1   0    1    0    0             |
++------------------+----------------------+-----------+-----------------------------------+
+|  0   16   0   4  |    600MiB / 9984MiB  | 14      0 |  1   0    1    0    0             |
++------------------+----------------------+-----------+-----------------------------------+
+
+# Read it like this:
+#   - GI 1 is the 3g.40gb instance (60 SM units, ~40 GB) — running a 13B-class model.
+#   - GI 13-16 are four 1g.10gb instances (14 SM units, ~10 GB each) — small models / embeddings.
+#   - 60 + 14*4 = 116 SM units, but the SLICE budget is what matters: 3 + 1 + 1 + 1 + 1 = 7. Full.
+#   - Each MIG-Dev gets its own memory column. GI 1 cannot see GI 13's 2400MiB. That is the isolation.
