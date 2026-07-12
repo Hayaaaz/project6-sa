@@ -1,4 +1,5 @@
-Student: Haya
+Project 6 — Carve the GPU
+Student: Haya Hussein
 Course: Systems Administration
 Date: July 2026
 ------------------------------------------------------------------------------------------------------------------
