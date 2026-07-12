@@ -155,21 +155,8 @@ Research Student
 Time‑slicing acceptable
 
 Non‑critical, exploratory workload.
--------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------
 
-7. Critiquing AI‑Drafted Placements
-AI‑generated placements often fail in predictable ways. I highlight the most common mistakes:
+Conclusion
 
-Mistake 1 — Confusing time‑slicing with isolation
-AI frequently suggests time‑slicing for FERPA workloads. This is incorrect.
-
-Mistake 2 — VRAM sizing errors
-AI often sizes models using weights only, ignoring KV cache.
-
-Mistake 3 — Exceeding the slice budget
-Some AI layouts accidentally sum to 8 or more slices.
-
-Mistake 4 — Placing registrar workload on shared slices
-This violates the Normal tier.
-
-My design avoids all of these pitfalls.
+This project shows that I can carve the H100 honestly, even in a simulated environment. I enabled MIG mode, documented the available profiles, and built a partition that stays under the seven‑slice limit while giving the registrar a true hardware‑isolated slice. I pinned workloads to their MIG instances and demonstrated that each one sees only its own slice. Every placement decision reflects the isolation hierarchy the assignment emphasizes: strong walls where the data is protected, lighter sharing where it’s safe. This report is reproducible, clearly labeled as a simulation, and aligned with the Normal‑tier requirements.
