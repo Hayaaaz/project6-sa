@@ -27,12 +27,11 @@ The GPU before MIG mode
 
 The available MIG profiles (nvidia-smi -lgip)
 
-The GPU after MIG mode is “enabled”
-
-All of these are stored in my evidence/ folder.
+Because my hardware cannot enable MIG, there is no real “after MIG enabled” screenshot. The “after” state is only described conceptually, as required by the project. All evidence is in the evidence/ folder.
 -------------------------------------------------------------------------------------------------------------------------
 
 3. Designing a Valid MIG Partition (Slices ≤ 7)
+
 3.1 Choosing Profiles Based on Workload Class
 Since I cannot measure real VRAM usage, I rely on Chapter 4’s sizing guidance:
 weights + KV cache + runtime overhead.
@@ -123,41 +122,37 @@ CUDA contexts
 In simulation, I demonstrate this separation by running workloads on different MIG UUIDs and capturing the output in isolation_proof.png.
 
 ---------------------------------------------------------------------------------------------------------------------
-6. Choosing the Correct Sharing Mode
-The project defines four GPU sharing modes:
+6. Choosing the Correct Sharing Mode  
+Chapter 6 defines four GPU‑sharing modes:
 
-Dedicated MIG (hardware isolation)
+Passthrough (VFIO) — one VM gets the entire GPU
 
-Time‑slicing
+Time‑slicing — GPU is shared in round‑robin slices
 
-Best‑effort multiplexing
+MPS (Multi‑Process Service) — best‑effort concurrent sharing
 
-Full GPU exclusive mode
+MIG (Multi‑Instance GPU) — hardware‑isolated GPU instances
 ______________________________
 
 My choices:
 
-Registrar (FERPA)
-Dedicated MIG slice
+Registrar (FERPA)  
+MIG (hardware‑isolated slice)  
+FERPA requires true hardware isolation. Time‑slicing and MPS do not provide isolation.
 
-FERPA requires hardware isolation. Time‑slicing is a shadow, not isolation.
+Library  
+MIG slice  
+Predictable latency and a steady embedding workload.
 
-Library
-Dedicated MIG slice
+CS Department  
+MIG slice (3g.40gb)  
+Larger conversational model; time‑slicing or MPS would cause latency spikes.
 
-Predictable latency and moderate workload.
-
-CS Department
-Dedicated MIG slice (3g.40gb)
-
-Larger conversational model; time‑slicing would cause latency spikes.
-
-Research Student
-Time‑slicing acceptable
-
-Non‑critical, exploratory workload.
---------------------------------------------------------------------------------------------
+Research Student  
+Time‑slicing  
+Non‑critical, exploratory notebook workload.
+-------------------------------------------------------
 
 Conclusion
 
-This project shows that I can carve the H100 honestly, even in a simulated environment. I enabled MIG mode, documented the available profiles, and built a partition that stays under the seven‑slice limit while giving the registrar a true hardware‑isolated slice. I pinned workloads to their MIG instances and demonstrated that each one sees only its own slice. Every placement decision reflects the isolation hierarchy the assignment emphasizes: strong walls where the data is protected, lighter sharing where it’s safe. This report is reproducible, clearly labeled as a simulation, and aligned with the Normal‑tier requirements.
+This project shows that I can carve an H100 using the MIG workflow, even in a simulated setup. I enabled MIG mode conceptually, documented the available profiles, and built a layout that stays under the seven‑slice limit while giving the registrar a fully isolated MIG slice. Each workload is pinned to its own instance, and each one only sees its assigned slice. The choices follow the isolation rules from the assignment, with strong isolation where needed and lighter sharing where it’s safe. The report is reproducible, clearly marked as a simulation, and meets the Normal‑tier requirements
