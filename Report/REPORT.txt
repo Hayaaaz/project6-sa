@@ -2,7 +2,8 @@ Project 6 — Carve the GPU
 Student: Haya Hussein
 Course: Systems Administration
 Date: July 2026
-------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 1. Introduction
@@ -11,7 +12,7 @@ In this project, I walk through how a single NVIDIA H100 can be safely shared ac
 Because I’m working in a simulated environment, I can’t run real VRAM measurements or carve an actual H100. Instead, I follow the guidance in Chapter 4 — especially the reminder that VRAM usage is more than just weights and that the KV cache often dominates. Using that framework, I choose reasonable MIG profiles, prove isolation using simulated UUIDs, and demonstrate correct pinning behavior.
 
 One workload matters more than all the others: the registrar’s FERPA‑protected classifier. If this workload is not placed on a hardware‑isolated MIG slice, the Normal tier is not met — no matter how elegant the rest of the partition looks. I keep that requirement front‑and‑center throughout the design.
----------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 2. Enabling MIG Mode (Simulation)
 MIG mode resets the GPU, so the textbook emphasizes enabling it only when the card is idle. Since I’m working without an H100, I simulate this process using the provided sample-nvidia-smi.txt.
@@ -28,7 +29,7 @@ The GPU before MIG mode
 The available MIG profiles (nvidia-smi -lgip)
 
 Because my hardware cannot enable MIG, there is no real “after MIG enabled” screenshot. The “after” state is only described conceptually, as required by the project. All evidence is in the evidence/ folder.
--------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 3. Designing a Valid MIG Partition (Slices ≤ 7)
 
@@ -68,7 +69,7 @@ Three 1g.10gb slices
 Total slices: 6
 
 This layout meets all constraints and satisfies the Normal tier because the registrar workload sits on a dedicated, hardware‑isolated MIG slice.
-------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 4. Pinning Workloads to MIG Instances
 The project requires demonstrating workload pinning using:
@@ -91,7 +92,7 @@ CUDA_VISIBLE_DEVICES=MIG-12345678-DDDD-EEEE-FFFF-222222222222 python3 dummy.py
 Both scripts print which MIG instance they are “running” on, and I captured the output in pinned_workload.png.
 
 Even in simulation, this demonstrates correct pinning behavior.
--------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 5. Isolation Proof
 The textbook reminds us that shared GPU modes are four different promises — and that we must name the mode every time. MIG provides real hardware isolation, while time‑slicing and MPS do not.
@@ -121,7 +122,7 @@ CUDA contexts
 
 In simulation, I demonstrate this separation by running workloads on different MIG UUIDs and capturing the output in isolation_proof.png.
 
----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 6. Choosing the Correct Sharing Mode  
 Chapter 6 defines four GPU‑sharing modes:
 
@@ -151,7 +152,7 @@ Larger conversational model; time‑slicing or MPS would cause latency spikes.
 Research Student  
 Time‑slicing  
 Non‑critical, exploratory notebook workload.
--------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Conclusion
 
